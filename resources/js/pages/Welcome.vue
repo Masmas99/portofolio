@@ -570,7 +570,7 @@ function setActiveProject(id: number | null) {
                             "
                             @click="setLocale('id')"
                         >
-                            <span>🇮🇩 ID</span>
+                            <span>ID</span>
                         </button>
                         <button
                             type="button"
@@ -582,7 +582,7 @@ function setActiveProject(id: number | null) {
                             "
                             @click="setLocale('en')"
                         >
-                            <span>🇬🇧 EN</span>
+                            <span>EN</span>
                         </button>
                     </div>
                 </div>
