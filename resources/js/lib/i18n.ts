@@ -11,17 +11,17 @@ export const translations = {
             projects: 'Proyek',
             skills: 'Keahlian',
             contact: 'Kontak',
-            getInTouch: 'Hubungi Saya',
+            downloadCv: 'Download CV',
             language: 'Bahasa',
         },
         hero: {
             badge: 'Full-Stack Developer',
             title1: 'Membangun sistem digital',
-            title2: 'yang aman.',
+            title2: 'yang andal.',
             description:
-                'Saya merancang aplikasi web yang andal dan memperkuat keamanannya dari berbagai ancaman. Dari server hingga kode yang bersih — saya menjembatani pengembangan dan keamanan.',
+                'Saya membangun aplikasi web yang andal dan merancang jaringan yang stabil. Dari frontend hingga backend sampai infrastruktur jaringan — saya menjembatani pengembangan dan networking.',
             viewWork: 'Lihat Proyek',
-            getInTouch: 'Hubungi Saya',
+            downloadCv: 'Download CV',
             scroll: 'Gulir',
         },
         about: {
@@ -30,9 +30,9 @@ export const translations = {
             statement1: 'Saya menulis kode yang',
             statementWorks: 'bekerja',
             statement2: 'lalu memastikan',
-            statementSecurity: 'tidak ada yang merusaknya.',
-            p1: 'Saya seorang full-stack developer dengan minat mendalam di bidang keamanan siber. Saya membangun aplikasi dengan PHP dan Laravel di backend, Vue dan Tailwind di frontend — lalu menguji ketahanannya dari perspektif keamanan.',
-            p2: 'Alur kerja saya mencakup perancangan skema database hingga pengerasan server Ubuntu, penulisan otomasi Bash, dan uji penetrasi (pentest). Saya percaya setiap pengembang harus berpikir seperti seorang penyerang.',
+            statementNetwork: 'jaringannya tetap terhubung.',
+            p1: 'Saya seorang full-stack developer yang juga mendalami network engineering. Di backend saya membangun aplikasi dengan PHP dan Laravel, di frontend dengan Vue dan Tailwind — dan di sisi jaringan saya merancang topologi, routing, serta mengelola perangkat jaringan.',
+            p2: 'Pekerjaan saya mencakup pengembangan full-stack, pengelolaan server, konfigurasi routing dan switching, hingga otomatisasi dengan script. Saya percaya aplikasi yang baik berjalan di atas jaringan yang terkelola dengan baik.',
             basedIn: 'Lokasi',
             location: 'Indonesia',
             languages: 'Bahasa',
@@ -47,7 +47,7 @@ export const translations = {
             sectionTitle: 'Proyek',
             title: 'Proyek Pilihan',
             description:
-                'Kumpulan proyek pilihan yang mencakup pengembangan web, peralatan keamanan, dan administrasi sistem.',
+                'Kumpulan proyek pilihan yang mencakup pengembangan web, infrastruktur jaringan, dan administrasi sistem.',
             visit: 'Kunjungi',
             details: 'Detail',
             preview: 'Pratinjau',
@@ -63,20 +63,20 @@ export const translations = {
             sectionTitle: 'Keahlian & Peralatan',
             title: 'Peralatan & Keahlian',
             description:
-                'Teknologi dan perangkat yang saya gunakan setiap hari untuk membangun dan mengamankan sistem digital.',
-            motd: 'Membangun dengan kode. Berpikir seperti penyerang.\nMengamankan segalanya.',
+                'Teknologi dan perangkat yang saya gunakan untuk membangun aplikasi serta mengelola jaringan.',
+            motd: 'Membangun aplikasi. Merancang jaringan.\nMenghubungkan semuanya.',
         },
         contact: {
             sectionNum: '04',
             sectionTitle: 'Kontak',
             title1: 'Mari bangun',
-            title2: 'sesuatu yang aman.',
+            title2: 'jaringan yang andal.',
             description:
-                'Baik untuk aplikasi web, pengerasan server, atau audit keamanan — saya selalu terbuka untuk mendiskusikan proyek dan ide baru.',
+                'Baik untuk aplikasi web, perancangan jaringan, atau administrasi server — saya selalu terbuka untuk mendiskusikan proyek dan ide baru.',
             cta: 'Mulai Percakapan',
             social: 'Sosial',
-            secureByDefault: 'Aman secara default.',
-            copyright: '© 2026 Ahmad Kurniawan. Dibuat dengan Laravel & Vue.',
+            secureByDefault: 'Dibuat untuk andal.',
+            copyright: '© 2026 Mashudi. Dibuat dengan Laravel & Vue.',
         },
     },
     en: {
@@ -85,17 +85,17 @@ export const translations = {
             projects: 'Projects',
             skills: 'Skills',
             contact: 'Contact',
-            getInTouch: 'Get in touch',
+            downloadCv: 'Download CV',
             language: 'Language',
         },
         hero: {
             badge: 'Full-Stack Developer',
-            title1: 'Building secure',
+            title1: 'Building reliable',
             title2: 'digital systems.',
             description:
-                'I craft robust web applications and harden them against threats. From server racks to clean code — I bridge development and security.',
+                'I build reliable web applications and design stable networks. From frontend to backend, down to the network infrastructure — I bridge development and networking.',
             viewWork: 'View Work',
-            getInTouch: 'Get in Touch',
+            downloadCv: 'Download CV',
             scroll: 'Scroll',
         },
         about: {
@@ -104,9 +104,9 @@ export const translations = {
             statement1: 'I write code that',
             statementWorks: 'works',
             statement2: 'then I make sure',
-            statementSecurity: 'no one breaks it.',
-            p1: "I'm a full-stack developer with a deep interest in cybersecurity. I build applications with PHP and Laravel on the backend, Vue and Tailwind on the frontend — and then I stress-test them from a security perspective.",
-            p2: 'My workflow spans from designing database schemas to hardening Ubuntu servers, writing Bash automation, and conducting penetration testing. I believe every developer should think like an attacker.',
+            statementNetwork: 'the network stays connected.',
+            p1: "I'm a full-stack developer with hands-on network engineering skills. I build applications with PHP and Laravel on the backend, Vue and Tailwind on the frontend — and on the network side I design topologies, routing, and manage network devices.",
+            p2: 'My work spans full-stack development, server management, routing and switching configuration, and script automation. I believe a good application runs on a well-managed network.',
             basedIn: 'Based in',
             location: 'Indonesia',
             languages: 'Languages',
@@ -121,7 +121,7 @@ export const translations = {
             sectionTitle: 'Projects',
             title: 'Selected Work',
             description:
-                'A curated set of projects spanning web development, security tooling, and system administration.',
+                'A curated set of projects spanning web development, network infrastructure, and system administration.',
             visit: 'Visit',
             details: 'Details',
             preview: 'Preview',
@@ -137,32 +137,26 @@ export const translations = {
             sectionTitle: 'Skills & Arsenal',
             title: 'The Toolkit',
             description:
-                'Technologies and tools I use daily to build and secure digital systems.',
-            motd: 'Building with code. Thinking like an attacker.\nSecuring everything in between.',
+                'Technologies and tools I use to build applications and manage networks.',
+            motd: 'Building applications. Designing networks.\nConnecting everything in between.',
         },
         contact: {
             sectionNum: '04',
             sectionTitle: 'Contact',
             title1: "Let's build",
-            title2: 'something secure.',
+            title2: 'something reliable.',
             description:
-                "Whether it's a web app, server hardening, or a security audit — I'm always open to discussing new projects and ideas.",
+                "Whether it's a web app, network design, or server administration — I'm always open to discussing new projects and ideas.",
             cta: 'Start a Conversation',
             social: 'Social',
-            secureByDefault: 'Secure by default.',
-            copyright: '© 2026 Ahmad Kurniawan. Built with Laravel & Vue.',
+            secureByDefault: 'Built to be reliable.',
+            copyright: '© 2026 Mashudi. Built with Laravel & Vue.',
         },
     },
 };
 
 export function initLocale(): Locale {
-    if (typeof window === 'undefined') return 'en';
-    const saved = localStorage.getItem('locale') as Locale | null;
-    if (saved === 'id' || saved === 'en') {
-        currentLocale.value = saved;
-    } else {
-        currentLocale.value = 'en';
-    }
+    currentLocale.value = 'en';
     return currentLocale.value;
 }
 

@@ -227,3 +227,318 @@ html.dark {
         }
     }
 }
+
+@layer utilities {
+    .boot-overlay {
+        animation: boot-fade-in 0.4s ease both;
+    }
+
+    .boot-fade-enter-active,
+    .boot-fade-leave-active {
+        transition: opacity 0.55s ease;
+    }
+
+    .boot-fade-enter-from,
+    .boot-fade-leave-to {
+        opacity: 0;
+    }
+
+    .boot-line {
+        min-height: 1.3rem;
+    }
+
+    .boot-cursor {
+        display: inline-block;
+        width: 0.62em;
+        height: 1.15em;
+        margin-left: 0.35em;
+        vertical-align: -0.18em;
+        background: var(--color-accent);
+        animation: boot-blink 0.9s steps(1) infinite;
+    }
+
+    .boot-progress {
+        position: relative;
+        height: 4px;
+        margin-top: 1.15rem;
+        overflow: hidden;
+        border-radius: 2px;
+        background: var(--color-border-subtle);
+    }
+
+    .boot-progress-bar {
+        width: 0%;
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(
+            90deg,
+            var(--color-accent-dim),
+            var(--color-accent)
+        );
+        animation: boot-progress 1.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+
+    .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+            opacity 0.7s ease,
+            transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+        will-change: opacity, transform;
+    }
+
+    .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    section[id] {
+        scroll-margin-top: 64px;
+    }
+
+    .hero-stagger > * {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+            opacity 0.7s ease,
+            transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+        will-change: opacity, transform;
+    }
+
+    .site-ready .hero-stagger > * {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .hero-stagger > *:nth-child(1) {
+        transition-delay: 0.05s;
+    }
+
+    .hero-stagger > *:nth-child(2) {
+        transition-delay: 0.15s;
+    }
+
+    .hero-stagger > *:nth-child(3) {
+        transition-delay: 0.25s;
+    }
+
+    .hero-stagger > *:nth-child(4) {
+        transition-delay: 0.35s;
+    }
+
+    .lanyard-scene {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+            opacity 0.6s ease,
+            transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s;
+        will-change: opacity, transform;
+    }
+
+    .site-ready .lanyard-scene {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* ===== Animated background ===== */
+    .orb {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(80px);
+        will-change: transform;
+        animation: orb-drift 22s ease-in-out infinite alternate;
+    }
+
+    .orb-1 {
+        animation-duration: 26s;
+    }
+
+    .orb-2 {
+        animation-delay: -9s;
+        animation-duration: 34s;
+    }
+
+    .orb-3 {
+        animation-delay: -17s;
+        animation-duration: 24s;
+    }
+
+    .orb-hero {
+        animation: orb-hero-pulse 9s ease-in-out infinite;
+    }
+
+    .bg-particle {
+        position: absolute;
+        bottom: -1rem;
+        width: 2px;
+        height: 2px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        animation-name: particle-rise;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    .scan-sweep {
+        position: absolute;
+        top: -40vh;
+        right: 0;
+        left: 0;
+        height: 34vh;
+        filter: blur(3px);
+        background: linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.03) 45%,
+            rgba(255, 255, 255, 0.07) 50%,
+            rgba(255, 255, 255, 0.03) 55%,
+            transparent 100%
+        );
+        animation: scan-sweep 11s linear infinite;
+    }
+
+    .radar-ring {
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        animation: radar-expand 4.8s ease-out infinite;
+    }
+
+    @keyframes orb-drift {
+        0% {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+        33% {
+            transform: translate3d(48px, -36px, 0) scale(1.12);
+        }
+        66% {
+            transform: translate3d(-36px, 28px, 0) scale(0.94);
+        }
+        100% {
+            transform: translate3d(20px, -18px, 0) scale(1.06);
+        }
+    }
+
+    @keyframes orb-hero-pulse {
+        0%,
+        100% {
+            opacity: 0.7;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.07);
+        }
+    }
+
+    @keyframes particle-rise {
+        0% {
+            transform: translate3d(0, 0, 0);
+            opacity: 0;
+        }
+        12% {
+            opacity: 0.45;
+        }
+        85% {
+            opacity: 0.3;
+        }
+        100% {
+            transform: translate3d(var(--particle-drift-x, 24px), -92vh, 0);
+            opacity: 0;
+        }
+    }
+
+    @keyframes scan-sweep {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        8% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+        92% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(140vh);
+            opacity: 0;
+        }
+    }
+
+    @keyframes radar-expand {
+        0% {
+            transform: scale(0.6);
+            opacity: 0.85;
+        }
+        100% {
+            transform: scale(7);
+            opacity: 0;
+        }
+    }
+
+    @keyframes boot-progress {
+        from {
+            width: 0%;
+        }
+        to {
+            width: 100%;
+        }
+    }
+
+    @keyframes boot-blink {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0;
+        }
+    }
+
+    @keyframes boot-fade-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .boot-fade-enter-active,
+        .boot-fade-leave-active {
+            transition: none;
+        }
+
+        .boot-progress-bar,
+        .boot-cursor {
+            animation: none;
+            opacity: 1;
+        }
+
+        .orb,
+        .orb-hero {
+            animation: none;
+        }
+
+        .bg-particle,
+        .scan-sweep,
+        .radar-ring {
+            display: none;
+        }
+
+        .reveal,
+        .hero-stagger > *,
+        .lanyard-scene {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+    }
+}

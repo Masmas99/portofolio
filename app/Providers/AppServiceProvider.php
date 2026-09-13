@@ -24,6 +24,31 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->ensurePublicStorageLink();
+    }
+
+    /**
+     * Make sure public/storage -> storage/app/public exists so files uploaded
+     * to the public disk (project images, CV PDF) are reachable on fresh
+     * deployments without having to run `php artisan storage:link` manually.
+     */
+    protected function ensurePublicStorageLink(): void
+    {
+        if ($this->app->runningUnitTests()) {
+            return;
+        }
+
+        $link = public_path('storage');
+
+        if (file_exists($link)) {
+            return;
+        }
+
+        if (! @symlink(storage_path('app/public'), $link)) {
+            report(new \RuntimeException(
+                'Could not create public/storage symlink to storage/app/public.',
+            ));
+        }
     }
 
     /**

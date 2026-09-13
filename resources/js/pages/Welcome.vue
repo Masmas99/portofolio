@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import type { Project } from '@/types/project';
@@ -13,9 +13,19 @@ const activeProject = ref<number | null>(null);
 const selectedProject = ref<Project | null>(null);
 const cardRef = ref<HTMLElement | null>(null);
 const lanyardEl = ref<HTMLElement | null>(null);
+const cvUrl = '/storage/cv/CV-Mashudi.pdf';
 const cardTilt = ref({ rx: 0, ry: 0 });
 const hasLanded = ref(false);
 const menuOpen = ref(false);
+const strapBaseline = ref(168);
+
+function syncStrapBaseline(): void {
+    const dynamics =
+        lanyardEl.value?.querySelector<HTMLElement>('.lanyard-dynamics');
+    if (dynamics) {
+        strapBaseline.value = dynamics.offsetHeight || 168;
+    }
+}
 
 function toggleMenu(): void {
     menuOpen.value = !menuOpen.value;
@@ -59,6 +69,75 @@ let lastMove = { x: 0, y: 0, t: 0 };
 let curVel = { x: 0, y: 0 };
 let springRaf: number | null = null;
 let entranceAnim: Animation | null = null;
+
+const introActive = ref(false);
+const siteReady = ref(false);
+const bootLine = ref('');
+const bootLines = [
+    '> booting dev./ahmad ...',
+    '> mounting components ......',
+    '> preloading assets & fonts ...',
+    '> ready in 2s',
+];
+let introTimer: number | null = null;
+let introFadeTimer: number | null = null;
+let revealObserver: IntersectionObserver | null = null;
+
+function startIntro(): void {
+    const reduce = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const seen = sessionStorage.getItem('intro:seen') === '1';
+    if (reduce || seen) {
+        finishIntro(true);
+        return;
+    }
+    sessionStorage.setItem('intro:seen', '1');
+    introActive.value = true;
+    bootLine.value = bootLines[0];
+    let i = 0;
+    introTimer = window.setInterval(() => {
+        i += 1;
+        if (i < bootLines.length) {
+            bootLine.value = bootLines[i];
+        } else {
+            if (introTimer !== null) window.clearInterval(introTimer);
+            introTimer = null;
+            introFadeTimer = window.setTimeout(() => finishIntro(false), 320);
+        }
+    }, 460);
+}
+
+function finishIntro(animate: boolean): void {
+    introActive.value = false;
+    if (introTimer !== null) window.clearInterval(introTimer);
+    window.setTimeout(
+        () => {
+            siteReady.value = true;
+        },
+        animate ? 620 : 0,
+    );
+}
+
+function initReveals(): void {
+    const els = document.querySelectorAll<HTMLElement>('.reveal');
+    if (!('IntersectionObserver' in window)) {
+        els.forEach((el) => el.classList.add('is-visible'));
+        return;
+    }
+    revealObserver = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    revealObserver?.unobserve(entry.target);
+                }
+            }
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -48px 0px' },
+    );
+    els.forEach((el) => revealObserver?.observe(el));
+}
 
 function springToZero(
     startX: number,
@@ -170,18 +249,261 @@ function playEntrance(): void {
     });
 }
 
+watch(siteReady, (ready) => {
+    if (ready) {
+        requestAnimationFrame(playEntrance);
+    }
+});
+
 onMounted(() => {
     initLocale();
-    playEntrance();
+    startIntro();
+    initReveals();
     window.addEventListener('keydown', onMenuEscape);
+    window.addEventListener('resize', syncStrapBaseline);
+    requestAnimationFrame(syncStrapBaseline);
+
+    resizeConstellation();
+    if (!reduceMotion) {
+        bgRunning = true;
+        bgRaf = requestAnimationFrame(constellationTick);
+    }
+    window.addEventListener('resize', resizeConstellation);
+    window.addEventListener('pointermove', onConstellationPointerMove, {
+        passive: true,
+    });
+    window.addEventListener('pointerdown', onConstellationPointerDown, {
+        passive: true,
+    });
+    document.addEventListener('pointerleave', onConstellationPointerLeave);
+    document.addEventListener(
+        'visibilitychange',
+        onConstellationVisibilityChange,
+    );
 });
 
 onUnmounted(() => {
     cancelSpring();
     if (entranceAnim) entranceAnim.cancel();
+    if (introTimer !== null) window.clearInterval(introTimer);
+    if (introFadeTimer !== null) window.clearTimeout(introFadeTimer);
+    revealObserver?.disconnect();
     window.removeEventListener('keydown', onMenuEscape);
+    window.removeEventListener('resize', syncStrapBaseline);
     document.body.style.overflow = '';
+
+    bgRunning = false;
+    cancelAnimationFrame(bgRaf);
+    window.removeEventListener('resize', resizeConstellation);
+    window.removeEventListener('pointermove', onConstellationPointerMove);
+    window.removeEventListener('pointerdown', onConstellationPointerDown);
+    document.removeEventListener('pointerleave', onConstellationPointerLeave);
+    document.removeEventListener(
+        'visibilitychange',
+        onConstellationVisibilityChange,
+    );
 });
+
+// ===== Interactive constellation background =====
+const constellation = ref<HTMLCanvasElement | null>(null);
+
+interface Star {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    r: number;
+}
+
+const stars: Star[] = [];
+const pointer = { x: -9999, y: -9999, active: false };
+const pulse = { x: -9999, y: -9999, t: -1 };
+let bgCtx: CanvasRenderingContext2D | null = null;
+let bgRaf = 0;
+let bgRunning = false;
+const reduceMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+).matches;
+
+function seedStars(): void {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const count = Math.max(50, Math.min(120, Math.round((w * h) / 15000)));
+    stars.length = 0;
+    for (let i = 0; i < count; i++) {
+        stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.18,
+            vy: (Math.random() - 0.5) * 0.18,
+            r: Math.random() * 1.6 + 0.6,
+        });
+    }
+}
+
+function resizeConstellation(): void {
+    const canvas = constellation.value;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    bgCtx = canvas.getContext('2d');
+    bgCtx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seedStars();
+    if (reduceMotion) {
+        drawConstellationFrame();
+    }
+}
+
+function onConstellationPointerMove(event: PointerEvent): void {
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    pointer.active = true;
+}
+
+function onConstellationPointerDown(event: PointerEvent): void {
+    pulse.x = event.clientX;
+    pulse.y = event.clientY;
+    pulse.t = performance.now();
+}
+
+function onConstellationPointerLeave(): void {
+    pointer.active = false;
+}
+
+const LINK = 120;
+const MOUSE_LINK = 170;
+
+function drawConstellationFrame(): void {
+    const ctx = bgCtx;
+    if (!ctx) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    // soft glow that follows the cursor
+    if (pointer.active) {
+        const glow = ctx.createRadialGradient(
+            pointer.x,
+            pointer.y,
+            0,
+            pointer.x,
+            pointer.y,
+            180,
+        );
+        glow.addColorStop(0, 'rgba(255,255,255,0.07)');
+        glow.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    // expanding ring on click
+    const now = performance.now();
+    const age = now - pulse.t;
+    if (age < 900) {
+        const p = age / 900;
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, 30 + p * 220, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${(0.28 * (1 - p)).toFixed(3)})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    // physics + cursor interaction
+    for (const star of stars) {
+        if (pointer.active) {
+            const dx = pointer.x - star.x;
+            const dy = pointer.y - star.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < MOUSE_LINK * MOUSE_LINK) {
+                const d = Math.sqrt(d2) || 1;
+                const falloff = 1 - d / MOUSE_LINK;
+                star.vx += (dx / d) * falloff * 0.03;
+                star.vy += (dy / d) * falloff * 0.03;
+            }
+        }
+        // shockwave push from click
+        if (age < 300) {
+            const px = star.x - pulse.x;
+            const py = star.y - pulse.y;
+            const pd = Math.hypot(px, py);
+            if (pd < 200 && pd > 0) {
+                const force = (1 - pd / 200) * (1 - age / 300) * 2.2;
+                star.vx += (px / pd) * force;
+                star.vy += (py / pd) * force;
+            }
+        }
+        star.vx *= 0.98;
+        star.vy *= 0.98;
+        star.x += star.vx;
+        star.y += star.vy;
+        if (star.x < -25) star.x = w + 25;
+        if (star.x > w + 25) star.x = -25;
+        if (star.y < -25) star.y = h + 25;
+        if (star.y > h + 25) star.y = -25;
+    }
+
+    // constellation lines between stars
+    for (let i = 0; i < stars.length; i++) {
+        const a = stars[i];
+        for (let j = i + 1; j < stars.length; j++) {
+            const b = stars[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < LINK * LINK) {
+                const d = Math.sqrt(d2);
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = `rgba(255,255,255,${(0.14 * (1 - d / LINK)).toFixed(3)})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        // lines that reach toward the cursor
+        if (pointer.active) {
+            const dx = pointer.x - a.x;
+            const dy = pointer.y - a.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < MOUSE_LINK * MOUSE_LINK) {
+                const d = Math.sqrt(d2);
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(pointer.x, pointer.y);
+                ctx.strokeStyle = `rgba(255,255,255,${(0.22 * (1 - d / MOUSE_LINK)).toFixed(3)})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+    }
+
+    // star dots
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    for (const star of stars) {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function constellationTick(): void {
+    if (!bgRunning) return;
+    drawConstellationFrame();
+    bgRaf = requestAnimationFrame(constellationTick);
+}
+
+function onConstellationVisibilityChange(): void {
+    if (document.hidden) {
+        bgRunning = false;
+        cancelAnimationFrame(bgRaf);
+    } else if (!reduceMotion) {
+        bgRunning = true;
+        bgRaf = requestAnimationFrame(constellationTick);
+    }
+}
 
 const lanyardDragStyle = computed(() => ({
     transform: `translate3d(${drag.value.x}px, ${drag.value.y}px, 0) rotate(${drag.value.rot}deg)`,
@@ -191,16 +513,28 @@ const lanyardDragStyle = computed(() => ({
             : 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
 }));
 
-const lanyardStrapStyle = computed(() => {
-    const strapLength = 150;
-    const targetY = Math.max(40, strapLength + drag.value.y);
-    const angle = -Math.atan2(drag.value.x, targetY) * (180 / Math.PI);
-    const scaleY = Math.hypot(drag.value.x, targetY) / strapLength;
+/* Hook hinges against the pull so it reads as flexible */
+const clipStyle = computed(() => {
+    const tilt = Math.max(-9, Math.min(9, -drag.value.x * 0.01));
     return {
-        transform: `rotate(${angle}deg) scaleY(${Math.max(
-            0.55,
-            Math.min(2.75, scaleY),
-        )})`,
+        transform: `translate3d(${drag.value.x}px, ${drag.value.y}px, 0) rotate(${drag.value.rot + tilt}deg)`,
+        transition:
+            isDragging.value || isSpringing.value
+                ? 'none'
+                : 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
+    };
+});
+
+/* Fabric strap rotates + stretches to follow the dragged card */
+const lanyardStrapStyle = computed(() => {
+    const targetY = Math.max(48, strapBaseline.value + drag.value.y);
+    const angle = -Math.atan2(drag.value.x, targetY) * (180 / Math.PI);
+    const scaleY = Math.max(
+        0.55,
+        Math.hypot(drag.value.x, targetY) / strapBaseline.value,
+    );
+    return {
+        transform: `rotate(${angle}deg) scaleY(${scaleY})`,
         transition:
             isDragging.value || isSpringing.value
                 ? 'none'
@@ -262,9 +596,9 @@ function onLanyardPointerUp() {
 }
 
 const avatarSources = [
-    '/images/avatar.jpg',
-    '/images/avatar.png',
     '/images/avatar.webp',
+    '/images/avatar.png',
+    '/images/avatar.jpg',
 ];
 const avatarIndex = ref(0);
 const avatarFailed = ref(false);
@@ -284,8 +618,8 @@ const skills = [
         items: ['Vue 3', 'Inertia.js', 'Tailwind CSS', 'TypeScript'],
     },
     {
-        category: 'Security',
-        items: ['Kali Linux', 'Nmap', 'Burp Suite', 'OWASP'],
+        category: 'Network Engineering',
+        items: ['TCP/IP', 'Routing & Switching', 'Cisco', 'MikroTik'],
     },
     { category: 'DevOps', items: ['Ubuntu Server', 'Nginx', 'Bash', 'Git'] },
 ];
@@ -313,11 +647,187 @@ function setActiveProject(id: number | null) {
 </script>
 
 <template>
-    <Head title="Portfolio" />
+    <Head>
+        <title>Mashudi — Full-Stack Developer & Network Engineer</title>
+        <link
+            rel="preload"
+            as="image"
+            href="/images/avatar.webp"
+            fetchpriority="high"
+        />
+    </Head>
 
-    <div class="bg-surface text-text-primary noise-bg min-h-screen">
+    <div
+        class="bg-surface text-text-primary noise-bg min-h-screen"
+        :class="{ 'site-ready': siteReady }"
+    >
+        <!-- Boot overlay -->
+        <Transition name="boot-fade">
+            <div
+                v-if="introActive"
+                class="boot-overlay bg-surface fixed inset-0 z-[100] flex items-center justify-center"
+                role="status"
+                aria-live="polite"
+            >
+                <div class="flex w-[min(90vw,420px)] flex-col items-center">
+                    <img
+                        src="/images/logo.png"
+                        alt="Mashudi"
+                        class="mb-6 h-16 w-auto"
+                    />
+                    <p class="boot-line text-text-secondary font-mono text-xs">
+                        {{ bootLine }}
+                        <span class="boot-cursor" aria-hidden="true" />
+                    </p>
+                    <div class="boot-progress mt-4 w-full">
+                        <div class="boot-progress-bar" />
+                    </div>
+                    <p
+                        class="text-text-muted mt-3 font-mono text-[10px] tracking-widest uppercase"
+                    >
+                        initializing portfolio
+                    </p>
+                </div>
+            </div>
+        </Transition>
+
         <!-- Grid Pattern Background -->
         <div class="grid-pattern pointer-events-none fixed inset-0" />
+
+        <!-- Animated monochrome background -->
+        <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+            <div
+                class="orb orb-1 absolute -top-[12%] -left-[10%] h-[560px] w-[560px] bg-white/[0.05]"
+            />
+            <div
+                class="orb orb-2 absolute -right-[12%] -bottom-[14%] h-[680px] w-[680px] bg-white/[0.04]"
+            />
+            <div
+                class="orb orb-3 absolute top-[16%] right-[16%] h-[420px] w-[420px] bg-white/[0.05]"
+            />
+        </div>
+
+        <!-- Sweeping scan line -->
+        <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+            <div class="scan-sweep" />
+        </div>
+
+        <!-- Radar pulse rings -->
+        <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+            <div
+                class="radar-ring absolute bottom-[12%] left-[8%]"
+                style="animation-delay: 0s"
+            />
+            <div
+                class="radar-ring absolute bottom-[12%] left-[8%]"
+                style="animation-delay: 1.6s"
+            />
+            <div
+                class="radar-ring absolute bottom-[12%] left-[8%]"
+                style="animation-delay: 3.2s"
+            />
+        </div>
+
+        <!-- Floating terminal particles -->
+        <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+            <span
+                class="bg-particle"
+                style="
+                    left: 6%;
+                    animation-duration: 20s;
+                    animation-delay: 0s;
+                    --particle-drift-x: 26px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 14%;
+                    animation-duration: 26s;
+                    animation-delay: -4s;
+                    --particle-drift-x: -18px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 24%;
+                    animation-duration: 17s;
+                    animation-delay: -9s;
+                    --particle-drift-x: 34px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 33%;
+                    animation-duration: 23s;
+                    animation-delay: -14s;
+                    --particle-drift-x: -22px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 44%;
+                    animation-duration: 19s;
+                    animation-delay: -2s;
+                    --particle-drift-x: 20px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 55%;
+                    animation-duration: 27s;
+                    animation-delay: -7s;
+                    --particle-drift-x: -30px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 64%;
+                    animation-duration: 16s;
+                    animation-delay: -11s;
+                    --particle-drift-x: 28px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 74%;
+                    animation-duration: 24s;
+                    animation-delay: -17s;
+                    --particle-drift-x: -16px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 84%;
+                    animation-duration: 21s;
+                    animation-delay: -5s;
+                    --particle-drift-x: 36px;
+                "
+            />
+            <span
+                class="bg-particle"
+                style="
+                    left: 92%;
+                    animation-duration: 26s;
+                    animation-delay: -12s;
+                    --particle-drift-x: -20px;
+                "
+            />
+        </div>
+
+        <!-- Interactive constellation background -->
+        <canvas
+            ref="constellation"
+            class="pointer-events-none fixed inset-0 z-0 h-full w-full"
+            aria-hidden="true"
+        />
 
         <!-- Navigation -->
         <nav
@@ -326,14 +836,12 @@ function setActiveProject(id: number | null) {
             <div
                 class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6"
             >
-                <a
-                    href="#"
-                    class="font-mono text-sm font-medium tracking-tight"
-                >
-                    <span class="text-accent">&gt;</span> dev<span
-                        class="text-text-muted"
-                        >.</span
-                    >
+                <a href="#" aria-label="Mashudi">
+                    <img
+                        src="/images/logo.png"
+                        alt="Mashudi"
+                        class="h-8 w-auto"
+                    />
                 </a>
                 <div class="hidden items-center gap-6 lg:flex">
                     <a
@@ -469,15 +977,12 @@ function setActiveProject(id: number | null) {
             <div
                 class="border-border-subtle flex h-14 shrink-0 items-center justify-between border-b px-6"
             >
-                <a
-                    href="#"
-                    class="font-mono text-sm font-medium tracking-tight"
-                    @click="closeMenu"
-                >
-                    <span class="text-accent">&gt;</span> dev<span
-                        class="text-text-muted"
-                        >.</span
-                    >
+                <a href="#" class="flex items-center" @click="closeMenu">
+                    <img
+                        src="/images/logo.png"
+                        alt="Mashudi"
+                        class="h-8 w-auto"
+                    />
                 </a>
                 <button
                     type="button"
@@ -591,14 +1096,16 @@ function setActiveProject(id: number | null) {
                     <p
                         class="text-text-muted mb-3 font-mono text-[10px] tracking-widest uppercase"
                     >
-                        Full-Stack &bull; Security Enthusiast
+                        Full-Stack Developer &bull; Network Engineer
                     </p>
                     <a
-                        href="#contact"
-                        class="bg-accent hover:bg-accent-dim block w-full rounded-lg px-6 py-3 text-center text-sm font-medium text-zinc-950 transition-colors"
+                        :href="cvUrl"
+                        target="_blank"
+                        rel="noopener"
+                        class="bg-accent hover:bg-accent-dim flex w-full items-center justify-center rounded-lg px-6 py-3 text-center text-sm font-medium text-zinc-950 transition-colors"
                         @click="closeMenu"
                     >
-                        {{ t.nav.getInTouch }}
+                        {{ t.nav.downloadCv }}
                     </a>
                 </div>
             </div>
@@ -615,14 +1122,14 @@ function setActiveProject(id: number | null) {
                 class="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2"
             >
                 <div
-                    class="bg-accent/5 h-[600px] w-[600px] rounded-full blur-[120px]"
+                    class="orb-hero h-[600px] w-[600px] rounded-full bg-white/[0.04] blur-[120px]"
                 />
             </div>
 
             <div class="relative z-10 mx-auto max-w-6xl px-6 py-24">
                 <div class="grid gap-16 lg:grid-cols-2 lg:items-center">
                     <!-- Left: Text -->
-                    <div class="order-2 space-y-8 lg:order-1">
+                    <div class="hero-stagger order-2 space-y-8 lg:order-1">
                         <div class="space-y-2">
                             <p
                                 class="text-accent font-mono text-xs tracking-widest uppercase"
@@ -667,10 +1174,12 @@ function setActiveProject(id: number | null) {
                                 </svg>
                             </a>
                             <a
-                                href="#contact"
-                                class="border-border-subtle text-text-secondary hover:border-border-default hover:text-text-primary inline-flex h-10 items-center gap-2 rounded-lg border px-5 text-sm font-medium transition-colors"
+                                :href="cvUrl"
+                                target="_blank"
+                                rel="noopener"
+                                class="border-border-subtle text-text-secondary hover:border-border-default hover:text-text-primary inline-flex h-10 items-center rounded-lg border px-5 text-sm font-medium transition-colors"
                             >
-                                {{ t.hero.getInTouch }}
+                                {{ t.hero.downloadCv }}
                             </a>
                         </div>
                     </div>
@@ -687,37 +1196,34 @@ function setActiveProject(id: number | null) {
                                     hasLanded && !isDragging && !isSpringing,
                                 'lanyard-dragging': isDragging,
                             }"
+                            @pointerdown="onLanyardPointerDown"
+                            @pointermove="onLanyardPointerMove"
+                            @pointerup="onLanyardPointerUp"
+                            @pointercancel="onLanyardPointerUp"
                         >
-                            <!-- Strap anchor (stays fixed at the top) -->
-                            <div
-                                class="lanyard-anchor"
-                                :style="lanyardStrapStyle"
-                            >
+                            <!-- Fabric strap anchor: black lanyard hanging down to the clip -->
+                            <div class="lanyard-anchor">
                                 <div class="lanyard-loop" />
-                                <div class="lanyard-strap">
-                                    <div class="lanyard-strap-stripes" />
-                                    <div class="lanyard-strap-seam" />
-                                    <div
-                                        class="lanyard-strap-text font-mono text-[9px] tracking-[0.35em]"
-                                    >
-                                        DEVELOPER&nbsp;&bull;&nbsp;FULL
-                                        STACK&nbsp;&bull;&nbsp;SECURITY&nbsp;&bull;&nbsp;
+                                <div
+                                    class="lanyard-dynamics"
+                                    :style="lanyardStrapStyle"
+                                >
+                                    <div class="lanyard-strap">
+                                        <div class="lanyard-strap-stripes" />
+                                        <div class="lanyard-strap-seam" />
+                                        <div
+                                            class="lanyard-strap-text font-mono text-[9px] tracking-[0.35em]"
+                                        >
+                                            DEVELOPER&nbsp;&bull;&nbsp;FULL
+                                            STACK&nbsp;&bull;&nbsp;NETWORK&nbsp;&bull;&nbsp;
+                                        </div>
                                     </div>
+                                    <div class="lanyard-tail" />
                                 </div>
-                                <div class="lanyard-tail" />
-                            </div>
 
-                            <!-- Moving assembly: clip + card -->
-                            <div
-                                class="lanyard-moving origin-top"
-                                :style="lanyardDragStyle"
-                                @pointerdown="onLanyardPointerDown"
-                                @pointermove="onLanyardPointerMove"
-                                @pointerup="onLanyardPointerUp"
-                                @pointercancel="onLanyardPointerUp"
-                            >
-                                <!-- Clip / hook -->
-                                <div class="lanyard-clip">
+                                <!-- Gunmetal metal connector: loop ring → buckle body → clip jaws.
+                                     Pivots at the swivel (top ring) so it stays welded to the card. -->
+                                <div class="lanyard-clip" :style="clipStyle">
                                     <svg
                                         class="lanyard-clip-metal"
                                         viewBox="0 0 120 46"
@@ -780,100 +1286,109 @@ function setActiveProject(id: number | null) {
                                                     stop-color="#565656"
                                                 />
                                             </linearGradient>
+                                            <linearGradient
+                                                id="clipDark"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="0"
+                                                    stop-color="#6f6f74"
+                                                />
+                                                <stop
+                                                    offset="0.5"
+                                                    stop-color="#3a3a3f"
+                                                />
+                                                <stop
+                                                    offset="1"
+                                                    stop-color="#232327"
+                                                />
+                                            </linearGradient>
                                         </defs>
 
-                                        <!-- swivel spool -->
-                                        <rect
-                                            x="51"
-                                            y="0"
-                                            width="18"
-                                            height="7"
-                                            rx="3.5"
-                                            fill="url(#clipGroove)"
-                                            stroke="#2e2e2e"
-                                            stroke-width="1"
-                                        />
-                                        <rect
-                                            x="55"
-                                            y="7"
-                                            width="10"
-                                            height="3"
-                                            fill="#2b2b2b"
-                                        />
-
-                                        <!-- upper cast frame with tail slot -->
+                                        <!-- metal loop the strap's tail passes through -->
                                         <path
-                                            d="M43 10h34l3 12a8 8 0 0 1-8 8H48a8 8 0 0 1-8-8l3-12z"
+                                            d="M54 4a6 6 0 1 1 12 0a6 6 0 1 1 -12 0 M56.5 4a3 3 0 1 0 7 0a3 3 0 1 0 -7 0"
+                                            fill-rule="evenodd"
                                             fill="url(#clipBody)"
                                             stroke="#2f2f2f"
                                             stroke-width="1"
                                         />
-                                        <!-- tail recess -->
                                         <rect
-                                            x="50"
-                                            y="12"
-                                            width="20"
-                                            height="11"
-                                            rx="2.5"
+                                            x="56"
+                                            y="10"
+                                            width="8"
+                                            height="3"
+                                            rx="1.5"
+                                            fill="#2b2b2b"
+                                        />
+
+                                        <!-- buckle body (anchor plate) -->
+                                        <path
+                                            d="M46 13h28l2 4a8 8 0 0 1-8 8H52a8 8 0 0 1-8-8l2-4z"
+                                            fill="url(#clipDark)"
+                                            stroke="#232326"
+                                            stroke-width="1"
+                                        />
+                                        <!-- slot where the strap end tucks in -->
+                                        <rect
+                                            x="51"
+                                            y="15"
+                                            width="18"
+                                            height="7"
+                                            rx="2"
                                             fill="#101013"
                                             stroke="#222226"
                                             stroke-width="1"
                                         />
-
-                                        <!-- spring-loaded jaw lever -->
+                                        <!-- subtle top highlight -->
                                         <path
-                                            d="M47 16 33 20a7 7 0 0 0 4 13l9 2"
-                                            fill="none"
-                                            stroke="url(#clipJaw)"
-                                            stroke-width="4.5"
+                                            d="M48 14h24"
+                                            stroke="rgba(255,255,255,0.35)"
+                                            stroke-width="1"
                                             stroke-linecap="round"
                                         />
-                                        <!-- knurled grip on the jaw -->
-                                        <path
-                                            d="M35 27m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M37 24c.8-3 1.4-5 1.4-5"
-                                            stroke="#3a3a3a"
-                                            stroke-width="1.2"
-                                            stroke-linecap="round"
-                                        />
-                                        <!-- coil spring -->
-                                        <circle
-                                            cx="45"
-                                            cy="21"
-                                            r="3"
-                                            stroke="#9a9a9a"
-                                            stroke-width="1.6"
-                                        />
-                                        <!-- hinge rivet -->
-                                        <circle
-                                            cx="47.5"
-                                            cy="15.5"
-                                            r="1.8"
-                                            fill="#222226"
-                                        />
 
-                                        <!-- clamp plate -->
+                                        <!-- clamp plate pinned to the card -->
                                         <path
-                                            d="M46 30h28l2 4a4 4 0 0 1-4 4H48a4 4 0 0 1-4-4l2-4z"
+                                            d="M47 30h26l2 4a4 4 0 0 1-4 4H49a4 4 0 0 1-4-4l2-4z"
                                             fill="url(#clipGroove)"
                                             stroke="#333333"
                                             stroke-width="1"
                                         />
+                                        <!-- hinge rivet -->
+                                        <circle
+                                            cx="60"
+                                            cy="30.5"
+                                            r="2.2"
+                                            fill="#222226"
+                                            stroke="#4d4d4d"
+                                            stroke-width="0.8"
+                                        />
                                         <!-- gripping prongs -->
                                         <path
-                                            d="M49 38c-2.5 3-2.5 5.5 0 7"
+                                            d="M50 38c-2.5 3-2.5 5.5 0 7"
                                             stroke="url(#clipJaw)"
                                             stroke-width="2.5"
                                             stroke-linecap="round"
                                         />
                                         <path
-                                            d="M71 38c2.5 3 2.5 5.5 0 7"
+                                            d="M70 38c2.5 3 2.5 5.5 0 7"
                                             stroke="url(#clipJaw)"
                                             stroke-width="2.5"
                                             stroke-linecap="round"
                                         />
                                     </svg>
                                 </div>
+                            </div>
 
+                            <!-- Card rides with the clip -->
+                            <div
+                                class="lanyard-moving"
+                                :style="lanyardDragStyle"
+                            >
                                 <!-- 3D Card -->
                                 <div
                                     ref="cardRef"
@@ -892,6 +1407,8 @@ function setActiveProject(id: number | null) {
                                         :key="avatarSources[avatarIndex]"
                                         alt="Profile photo"
                                         class="absolute inset-0 h-full w-full object-cover"
+                                        fetchpriority="high"
+                                        decoding="async"
                                         @error="handleAvatarError"
                                     />
                                     <div
@@ -1010,7 +1527,7 @@ function setActiveProject(id: number | null) {
         <!-- ABOUT SECTION                                -->
         <!-- ============================================ -->
         <section id="about" class="border-border-subtle relative border-t">
-            <div class="mx-auto max-w-6xl px-6 py-24">
+            <div class="reveal mx-auto max-w-6xl px-6 py-24">
                 <!-- Section label -->
                 <div class="mb-16 flex items-center gap-4">
                     <span
@@ -1038,7 +1555,7 @@ function setActiveProject(id: number | null) {
                             <br />
                             {{ t.about.statement2 }}
                             <span class="text-accent">{{
-                                t.about.statementSecurity
+                                t.about.statementNetwork
                             }}</span>
                         </h2>
                     </div>
@@ -1117,7 +1634,7 @@ function setActiveProject(id: number | null) {
             id="projects"
             class="border-border-subtle bg-surface-raised relative border-t"
         >
-            <div class="mx-auto max-w-6xl px-6 py-24">
+            <div class="reveal mx-auto max-w-6xl px-6 py-24">
                 <!-- Section label -->
                 <div class="mb-16 flex items-center gap-4">
                     <span
@@ -1198,7 +1715,6 @@ function setActiveProject(id: number | null) {
                                             <p
                                                 class="text-text-muted mt-1 text-xs"
                                             >
-                                                {{ project.status }} &middot;
                                                 {{ t.projects.noScreenshot }}
                                             </p>
                                         </div>
@@ -1206,18 +1722,8 @@ function setActiveProject(id: number | null) {
                                 </div>
                             </div>
 
-                            <!-- Status badge & Link/Detail Action -->
-                            <div class="mb-4 flex items-center justify-between">
-                                <span
-                                    class="border-border-subtle bg-surface-overlay text-text-muted inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase"
-                                >
-                                    <span
-                                        class="bg-accent h-1 w-1 rounded-full"
-                                    />
-                                    {{ project.status }}
-                                </span>
-
-                                <!-- External link button or View detail button -->
+                            <!-- External link action -->
+                            <div class="mb-4 flex items-center justify-end">
                                 <a
                                     v-if="project.link"
                                     :href="project.link"
@@ -1242,27 +1748,6 @@ function setActiveProject(id: number | null) {
                                         />
                                     </svg>
                                 </a>
-                                <button
-                                    v-else
-                                    type="button"
-                                    class="text-text-muted group-hover:text-accent flex items-center gap-1 font-mono text-xs transition-colors"
-                                    @click.stop="openProject(project)"
-                                >
-                                    <span>{{ t.projects.details }}</span>
-                                    <svg
-                                        class="h-3.5 w-3.5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke-width="1.8"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                                        />
-                                    </svg>
-                                </button>
                             </div>
 
                             <!-- Title -->
@@ -1316,7 +1801,7 @@ function setActiveProject(id: number | null) {
         <!-- SKILLS SECTION                               -->
         <!-- ============================================ -->
         <section id="skills" class="border-border-subtle relative border-t">
-            <div class="mx-auto max-w-6xl px-6 py-24">
+            <div class="reveal mx-auto max-w-6xl px-6 py-24">
                 <!-- Section label -->
                 <div class="mb-16 flex items-center gap-4">
                     <span
@@ -1405,7 +1890,7 @@ function setActiveProject(id: number | null) {
             id="contact"
             class="border-border-subtle bg-surface-raised relative border-t"
         >
-            <div class="mx-auto max-w-6xl px-6 py-24">
+            <div class="reveal mx-auto max-w-6xl px-6 py-24">
                 <!-- Section label -->
                 <div class="mb-16 flex items-center gap-4">
                     <span
@@ -1436,7 +1921,7 @@ function setActiveProject(id: number | null) {
                         </p>
                         <div class="mt-8 flex items-center gap-3">
                             <a
-                                href="mailto:hello@example.com"
+                                href="mailto:masamasmas88@gmail.com"
                                 class="bg-text-primary text-surface inline-flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-medium transition-opacity hover:opacity-90"
                             >
                                 {{ t.contact.cta }}
@@ -1469,7 +1954,7 @@ function setActiveProject(id: number | null) {
                             </p>
                             <div class="mt-3 flex flex-col gap-2">
                                 <a
-                                    href="#"
+                                    href="https://github.com/Masmas99"
                                     class="group border-border-subtle bg-surface hover:border-border-default flex items-center justify-between rounded-lg border px-4 py-3 transition-colors"
                                 >
                                     <span
@@ -1513,7 +1998,31 @@ function setActiveProject(id: number | null) {
                                     </svg>
                                 </a>
                                 <a
-                                    href="#"
+                                    href="https://instagram.com/feaf.v"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="group border-border-subtle bg-surface hover:border-border-default flex items-center justify-between rounded-lg border px-4 py-3 transition-colors"
+                                >
+                                    <span
+                                        class="text-text-secondary group-hover:text-text-primary text-sm transition-colors"
+                                        >Instagram</span
+                                    >
+                                    <svg
+                                        class="text-text-muted h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="1.5"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                                        />
+                                    </svg>
+                                </a>
+                                <a
+                                    href="mailto:masamasmas88@gmail.com"
                                     class="group border-border-subtle bg-surface hover:border-border-default flex items-center justify-between rounded-lg border px-4 py-3 transition-colors"
                                 >
                                     <span
@@ -1732,21 +2241,30 @@ function setActiveProject(id: number | null) {
     cursor: grabbing;
 }
 
-/* Strap hangs from a fixed anchor point at the top */
+/* Strap hangs from a fixed anchor point at the top.
+   Paint order (bottom -> top): card (1), strap/tail (20), clip/hook (30). */
 .lanyard-anchor {
-    transform-origin: top center;
-    will-change: transform;
-}
-
-/* Clip + card move together when dragged */
-.lanyard-moving {
-    will-change: transform;
+    position: relative;
+    z-index: 20;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.lanyard-dragging .lanyard-strap,
+/* Card moves together with the clip when dragged.
+   Same pivot as the clip: the swivel sits 34px above the card top
+   (clip height 42 minus -8px bottom margin overlap). */
+.lanyard-moving {
+    position: relative;
+    z-index: 1;
+    will-change: transform;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: 50% -34px;
+}
+
+.lanyard-dragging .lanyard-dynamics,
 .lanyard-dragging .lanyard-clip,
 .lanyard-dragging .card-3d {
     transition: none;
@@ -1765,6 +2283,15 @@ function setActiveProject(id: number | null) {
     box-shadow:
         inset 0 2px 2px rgba(0, 0, 0, 0.4),
         0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Strap + tail stretch/rotate together to follow the dragged card */
+.lanyard-dynamics {
+    transform-origin: top center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    will-change: transform;
 }
 
 /* Vertical strap */
@@ -1840,7 +2367,7 @@ function setActiveProject(id: number | null) {
 .lanyard-tail {
     position: relative;
     z-index: 1;
-    margin: 0 auto;
+    margin: 0 auto -10px;
     width: 14px;
     height: 18px;
     background: linear-gradient(90deg, #17171a 0%, #26262b 50%, #17171a 100%);
@@ -1897,7 +2424,7 @@ function setActiveProject(id: number | null) {
 
 .lanyard-clip {
     position: relative;
-    z-index: 10;
+    z-index: 30;
     width: 104px;
     height: 42px;
     display: flex;
@@ -1905,6 +2432,10 @@ function setActiveProject(id: number | null) {
     justify-content: center;
     margin-bottom: -8px;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55));
+    /* Pivot at the swivel (clip top) — where the strap connects.
+       Card & hook rotate together around this point, so the hook
+       never separates from the card's top edge. */
+    transform-origin: 50% 0px;
 }
 
 .lanyard-clip-metal {

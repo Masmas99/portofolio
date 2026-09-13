@@ -126,7 +126,7 @@ function confirmDelete(): void {
                             >
                                 {{ project.title }}
                                 <svg
-                                    class="text-text-muted h-3 w-3"
+                                    class="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke-width="2"
@@ -141,11 +141,6 @@ function confirmDelete(): void {
                             </a>
                             <span v-else>{{ project.title }}</span>
                         </h2>
-                        <span
-                            class="border-border-subtle bg-surface-overlay text-text-muted shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[9px] tracking-wider uppercase"
-                        >
-                            {{ project.status }}
-                        </span>
                     </div>
                     <p class="text-text-muted mt-0.5 truncate text-xs">
                         {{ project.tags.join(' ').slice(0, 80) }}

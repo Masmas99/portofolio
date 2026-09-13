@@ -23,14 +23,12 @@ function submit(): void {
 
         <div class="relative z-10 w-full max-w-sm">
             <div class="mb-8 text-center">
-                <a
-                    href="/"
-                    class="font-mono text-lg font-medium tracking-tight"
-                >
-                    <span class="text-accent">&gt;</span> dev<span
-                        class="text-text-muted"
-                        >.</span
-                    >
+                <a href="/" class="inline-block">
+                    <img
+                        src="/images/logo.png"
+                        alt="Mashudi"
+                        class="h-12 w-auto"
+                    />
                 </a>
                 <p
                     class="text-text-muted mt-2 font-mono text-[10px] tracking-widest uppercase"
