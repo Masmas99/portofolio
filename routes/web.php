@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Admin\LoginController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\CvController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', WelcomeController::class)->name('home');
+
+Route::get('/cv/download', CvController::class)->name('cv.download');
 
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [LoginController::class, 'create'])

@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { download as cvRoute } from '@/routes/cv';
 import type { Project } from '@/types/project';
 import { useI18n } from '@/lib/i18n';
 import { techBrands } from '@/lib/techStack';
@@ -13,7 +14,7 @@ const activeProject = ref<number | null>(null);
 const selectedProject = ref<Project | null>(null);
 const cardRef = ref<HTMLElement | null>(null);
 const lanyardEl = ref<HTMLElement | null>(null);
-const cvUrl = '/storage/cv/CV-Mashudi.pdf';
+const cvUrl = cvRoute.url();
 const cardTilt = ref({ rx: 0, ry: 0 });
 const hasLanded = ref(false);
 const menuOpen = ref(false);
