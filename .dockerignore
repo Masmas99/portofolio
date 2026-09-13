@@ -1,0 +1,17 @@
+.git
+.gitignore
+.github
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+tests
+public/hot
+storage/framework/*
+storage/logs/*
+!storage/framework/.gitignore
+!storage/logs/.gitignore
+Dockerfile
+.dockerignore
+render.yaml
