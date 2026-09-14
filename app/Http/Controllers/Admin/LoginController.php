@@ -15,7 +15,7 @@ class LoginController extends Controller
 {
     private const MAX_ATTEMPTS = 3;
 
-    private const DECAY_SECONDS = 1200;
+    private const DECAY_SECONDS = 600;
 
     public function create(): Response
     {

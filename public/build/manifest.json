@@ -1,6 +1,6 @@
 {
-  "_AdminLayout-gc26ZAc2.js": {
-    "file": "assets/AdminLayout-gc26ZAc2.js",
+  "_AdminLayout-CHWBgNB_.js": {
+    "file": "assets/AdminLayout-CHWBgNB_.js",
     "name": "AdminLayout",
     "imports": [
       "resources/js/app.ts",
@@ -79,12 +79,12 @@
     "isEntry": true
   },
   "resources/js/app.ts": {
-    "file": "assets/app-Cl3RdtKS.js",
+    "file": "assets/app-B5cYtbWr.js",
     "name": "app",
     "src": "resources/js/app.ts",
     "isEntry": true,
     "dynamicImports": [
-      "_AdminLayout-gc26ZAc2.js",
+      "_AdminLayout-CHWBgNB_.js",
       "resources/js/pages/Admin/Login.vue",
       "resources/js/pages/Admin/Projects/Form.vue",
       "resources/js/pages/Admin/Projects/Index.vue",
@@ -92,7 +92,7 @@
     ]
   },
   "resources/js/pages/Admin/Login.vue": {
-    "file": "assets/Login-BnBV37fe.js",
+    "file": "assets/Login-CnnBer5E.js",
     "name": "Login",
     "src": "resources/js/pages/Admin/Login.vue",
     "isDynamicEntry": true,
@@ -102,29 +102,29 @@
     ]
   },
   "resources/js/pages/Admin/Projects/Form.vue": {
-    "file": "assets/Form-CKqogEMN.js",
+    "file": "assets/Form-CaLnwa58.js",
     "name": "Form",
     "src": "resources/js/pages/Admin/Projects/Form.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AdminLayout-gc26ZAc2.js",
+      "_AdminLayout-CHWBgNB_.js",
       "resources/js/app.ts",
       "_ProjectController-DaehUSQD.js"
     ]
   },
   "resources/js/pages/Admin/Projects/Index.vue": {
-    "file": "assets/Index-CzLWFEh_.js",
+    "file": "assets/Index-zN3m2R_8.js",
     "name": "Index",
     "src": "resources/js/pages/Admin/Projects/Index.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AdminLayout-gc26ZAc2.js",
+      "_AdminLayout-CHWBgNB_.js",
       "resources/js/app.ts",
       "_ProjectController-DaehUSQD.js"
     ]
   },
   "resources/js/pages/Welcome.vue": {
-    "file": "assets/Welcome-iMkAWyLK.js",
+    "file": "assets/Welcome-DUhhtYxI.js",
     "name": "Welcome",
     "src": "resources/js/pages/Welcome.vue",
     "isDynamicEntry": true,

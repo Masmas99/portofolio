@@ -38,7 +38,7 @@ it('rejects invalid credentials', function () {
     $this->assertGuest();
 });
 
-it('locks the email out for 20 minutes after three failed attempts', function () {
+it('locks the email out for 10 minutes after three failed attempts', function () {
     $email = 'admin@example.com';
 
     for ($i = 0; $i < 3; $i++) {
@@ -55,7 +55,7 @@ it('locks the email out for 20 minutes after three failed attempts', function ()
 
     $error = session('errors')->get('email')[0];
     expect($error)->toContain('Too many login attempts');
-    expect($error)->toContain('20 minute(s)');
+    expect($error)->toContain('10 minute(s)');
 
     $this->assertGuest();
 });

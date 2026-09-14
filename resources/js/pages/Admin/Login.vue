@@ -1,9 +1,55 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { store as login } from '@/actions/App/Http/Controllers/Admin/LoginController';
 
-const locked = ref(false);
+const LOCK_KEY = 'login:lock';
+const LOCK_MINUTES = 10;
+
+interface LockState {
+    attempts: number;
+    lockedUntil: number;
+}
+
+function readLock(): LockState {
+    try {
+        const raw = localStorage.getItem(LOCK_KEY);
+        if (!raw) {
+            return { attempts: 0, lockedUntil: 0 };
+        }
+        const data = JSON.parse(raw) as Partial<LockState>;
+
+        return {
+            attempts: Number(data.attempts) || 0,
+            lockedUntil: Number(data.lockedUntil) || 0,
+        };
+    } catch {
+        return { attempts: 0, lockedUntil: 0 };
+    }
+}
+
+function writeLock(state: LockState): void {
+    try {
+        localStorage.setItem(LOCK_KEY, JSON.stringify(state));
+    } catch {
+        // storage unavailable — lock stays page-scoped
+    }
+}
+
+const initial = readLock();
+const attempts = ref(initial.attempts);
+const lockedUntil = ref(initial.lockedUntil);
+let timer: number | null = null;
+
+const locked = computed(() => lockedUntil.value > Date.now());
+
+const remaining = computed(() => {
+    const diff = Math.max(0, lockedUntil.value - Date.now());
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    return `${minutes}m ${seconds}s`;
+});
 
 const form = useForm({
     email: '',
@@ -11,13 +57,47 @@ const form = useForm({
 });
 
 function submit(): void {
+    if (locked.value) {
+        return;
+    }
+
     form.post(login.url(), {
         onError: () => {
-            locked.value = true;
+            attempts.value += 1;
+            lockedUntil.value =
+                attempts.value >= 3 ? Date.now() + LOCK_MINUTES * 60 * 1000 : 0;
+            if (attempts.value >= 3) {
+                attempts.value = 0;
+            }
+            writeLock({
+                attempts: attempts.value,
+                lockedUntil: lockedUntil.value,
+            });
         },
         onFinish: () => form.reset('password'),
     });
 }
+
+if (locked.value) {
+    timer = window.setInterval(() => {
+        if (lockedUntil.value <= Date.now()) {
+            attempts.value = 0;
+            lockedUntil.value = 0;
+            writeLock({ attempts: 0, lockedUntil: 0 });
+            if (timer !== null) {
+                window.clearInterval(timer);
+                timer = null;
+            }
+        }
+    }, 1000);
+}
+
+onUnmounted(() => {
+    if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+    }
+});
 </script>
 
 <template>
@@ -98,8 +178,8 @@ function submit(): void {
 
                     <div v-if="locked" class="space-y-1">
                         <p class="text-accent text-xs">
-                            Login locked after a failed attempt. Reload the page
-                            to try again.
+                            Login locked after 3 failed attempts. Please wait
+                            {{ remaining }} before trying again.
                         </p>
                     </div>
 
