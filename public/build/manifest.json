@@ -1,6 +1,6 @@
 {
-  "_AdminLayout-B5aL2Elc.js": {
-    "file": "assets/AdminLayout-B5aL2Elc.js",
+  "_AdminLayout-gc26ZAc2.js": {
+    "file": "assets/AdminLayout-gc26ZAc2.js",
     "name": "AdminLayout",
     "imports": [
       "resources/js/app.ts",
@@ -70,7 +70,7 @@
     "name": "wayfinder"
   },
   "resources/css/app.css": {
-    "file": "assets/app-D9ensqkF.css",
+    "file": "assets/app-Drt21XFE.css",
     "name": "app",
     "names": [
       "app.css"
@@ -79,12 +79,12 @@
     "isEntry": true
   },
   "resources/js/app.ts": {
-    "file": "assets/app-BkuiXtYw.js",
+    "file": "assets/app-Cl3RdtKS.js",
     "name": "app",
     "src": "resources/js/app.ts",
     "isEntry": true,
     "dynamicImports": [
-      "_AdminLayout-B5aL2Elc.js",
+      "_AdminLayout-gc26ZAc2.js",
       "resources/js/pages/Admin/Login.vue",
       "resources/js/pages/Admin/Projects/Form.vue",
       "resources/js/pages/Admin/Projects/Index.vue",
@@ -92,7 +92,7 @@
     ]
   },
   "resources/js/pages/Admin/Login.vue": {
-    "file": "assets/Login-D7-A_sKD.js",
+    "file": "assets/Login-BnBV37fe.js",
     "name": "Login",
     "src": "resources/js/pages/Admin/Login.vue",
     "isDynamicEntry": true,
@@ -102,29 +102,29 @@
     ]
   },
   "resources/js/pages/Admin/Projects/Form.vue": {
-    "file": "assets/Form-Rwu9qHp4.js",
+    "file": "assets/Form-CKqogEMN.js",
     "name": "Form",
     "src": "resources/js/pages/Admin/Projects/Form.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AdminLayout-B5aL2Elc.js",
+      "_AdminLayout-gc26ZAc2.js",
       "resources/js/app.ts",
       "_ProjectController-DaehUSQD.js"
     ]
   },
   "resources/js/pages/Admin/Projects/Index.vue": {
-    "file": "assets/Index-DIuqexeT.js",
+    "file": "assets/Index-CzLWFEh_.js",
     "name": "Index",
     "src": "resources/js/pages/Admin/Projects/Index.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AdminLayout-B5aL2Elc.js",
+      "_AdminLayout-gc26ZAc2.js",
       "resources/js/app.ts",
       "_ProjectController-DaehUSQD.js"
     ]
   },
   "resources/js/pages/Welcome.vue": {
-    "file": "assets/Welcome-CypFv__1.js",
+    "file": "assets/Welcome-iMkAWyLK.js",
     "name": "Welcome",
     "src": "resources/js/pages/Welcome.vue",
     "isDynamicEntry": true,
@@ -133,7 +133,7 @@
       "_wayfinder-Dp7PqxvV.js"
     ],
     "css": [
-      "assets/Welcome-D0szE_qM.css"
+      "assets/Welcome-BJ18txGZ.css"
     ]
   }
 }

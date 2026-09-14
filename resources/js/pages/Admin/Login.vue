@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { store as login } from '@/actions/App/Http/Controllers/Admin/LoginController';
+
+const locked = ref(false);
 
 const form = useForm({
     email: '',
@@ -9,6 +12,9 @@ const form = useForm({
 
 function submit(): void {
     form.post(login.url(), {
+        onError: () => {
+            locked.value = true;
+        },
         onFinish: () => form.reset('password'),
     });
 }
@@ -55,7 +61,8 @@ function submit(): void {
                             type="email"
                             autocomplete="username"
                             required
-                            class="border-border-subtle bg-surface text-text-primary focus:border-accent focus:ring-accent/30 w-full rounded-lg border px-3 py-2 text-sm transition-colors outline-none focus:ring-4"
+                            :disabled="locked"
+                            class="border-border-subtle bg-surface text-text-primary focus:border-accent focus:ring-accent/30 w-full rounded-lg border px-3 py-2 text-sm transition-colors outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                         <p
                             v-if="form.errors.email"
@@ -78,7 +85,8 @@ function submit(): void {
                             type="password"
                             autocomplete="current-password"
                             required
-                            class="border-border-subtle bg-surface text-text-primary focus:border-accent focus:ring-accent/30 w-full rounded-lg border px-3 py-2 text-sm transition-colors outline-none focus:ring-4"
+                            :disabled="locked"
+                            class="border-border-subtle bg-surface text-text-primary focus:border-accent focus:ring-accent/30 w-full rounded-lg border px-3 py-2 text-sm transition-colors outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                         <p
                             v-if="form.errors.password"
@@ -88,12 +96,25 @@ function submit(): void {
                         </p>
                     </div>
 
+                    <div v-if="locked" class="space-y-1">
+                        <p class="text-accent text-xs">
+                            Login locked after a failed attempt. Reload the page
+                            to try again.
+                        </p>
+                    </div>
+
                     <button
                         type="submit"
-                        :disabled="form.processing"
-                        class="bg-accent hover:bg-accent-dim w-full rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors disabled:opacity-60"
+                        :disabled="form.processing || locked"
+                        class="bg-accent hover:bg-accent-dim w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {{ form.processing ? 'Signing in...' : 'Sign in' }}
+                        {{
+                            form.processing
+                                ? 'Signing in...'
+                                : locked
+                                  ? 'Locked'
+                                  : 'Sign in'
+                        }}
                     </button>
                 </div>
             </form>

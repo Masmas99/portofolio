@@ -1,27 +1,27 @@
 services:
-  - type: web
-    name: mashudi-portofolio
-    runtime: docker
-    repo: https://github.com/Masmas99/portofolio
-    plan: free
-    autoDeploy: true
-    healthCheckPath: /
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: APP_DEBUG
-        value: "false"
-      - key: APP_URL
-        value: https://mashudi.web.id
-      - key: DB_CONNECTION
-        value: sqlite
-      - key: LOG_STACK
-        value: single
-      - key: LOG_LEVEL
-        value: error
-      - key: SESSION_SECURE_COOKIE
-        value: "true"
-      - key: ADMIN_EMAIL
-        value: admin@example.com
-      - key: ADMIN_PASSWORD
-        value: password
+    - type: web
+      name: mashudi-portofolio
+      runtime: docker
+      repo: https://github.com/Masmas99/portofolio
+      plan: free
+      autoDeploy: true
+      healthCheckPath: /
+      envVars:
+          - key: APP_ENV
+            value: production
+          - key: APP_DEBUG
+            value: 'false'
+          - key: APP_URL
+            value: https://mashudi.web.id
+          - key: DB_CONNECTION
+            value: sqlite
+          - key: LOG_STACK
+            value: single
+          - key: LOG_LEVEL
+            value: error
+          - key: SESSION_SECURE_COOKIE
+            value: 'true'
+          - key: ADMIN_EMAIL
+            value: admin@example.com
+          - key: ADMIN_PASSWORD
+            value: password
