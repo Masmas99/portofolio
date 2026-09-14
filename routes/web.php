@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', WelcomeController::class)->name('home');
 
+Route::match(['get', 'head'], '/_boost/browser-logs', fn () => response()->noContent());
+
 Route::get('/cv/download', CvController::class)->name('cv.download');
 
 Route::middleware('guest')->group(function () {
