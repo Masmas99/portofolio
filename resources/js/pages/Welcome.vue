@@ -616,7 +616,7 @@ const skills = [
     { category: 'Backend', items: ['PHP 8', 'Laravel', 'MySQL', 'REST API'] },
     {
         category: 'Frontend',
-        items: ['Vue 3', 'Inertia.js', 'Tailwind CSS', 'TypeScript'],
+        items: ['Vue 3', 'React.js', 'Tailwind CSS', 'TypeScript'],
     },
     {
         category: 'Network Engineering',
