@@ -20,8 +20,11 @@ export default defineConfig({
                 }),
             ],
         }),
+
         inertia(),
+
         tailwindcss(),
+
         vue({
             template: {
                 transformAssetUrls: {
@@ -30,10 +33,18 @@ export default defineConfig({
                 },
             },
         }),
-        wayfinder({
-            formVariants: true,
-        }),
+
+        // Wayfinder membutuhkan PHP artisan.
+        // Jangan jalankan saat build di Vercel.
+        ...(process.env.VERCEL
+            ? []
+            : [
+                  wayfinder({
+                      formVariants: true,
+                  }),
+              ]),
     ]),
+
     server: {
         watch: {
             ignored: [
@@ -45,6 +56,7 @@ export default defineConfig({
             ],
         },
     },
+
     lint: {
         ignorePatterns: [
             'vendor/**',
@@ -62,6 +74,7 @@ export default defineConfig({
             typeAware: true,
         },
     },
+
     fmt: {
         printWidth: 80,
         tabWidth: 4,
